@@ -1,18 +1,10 @@
-# Brick DVC stages
-# See https://dvc.org/doc/user-guide/project-structure/dvcyaml-files#pipelines-files-dvcyaml
-
-# The complete process can be executed using:
-# dvc repro
-# If you want to force redoing the process use 
-# dvc repro -f
-# Individual stage can be executed using: 
-# dvc repro <stage>
-
 stages:
+
   status:
     cmd: bash src/01_status.sh
     outs:
       - downloads/toxrefdb_status.html
+
   download: 
     cmd: python3 src/02_download.py
     deps:
@@ -20,9 +12,11 @@ stages:
       - src/02_download.py
     outs:
       - downloads/mysql_toxrefdb.sql
+
   build: 
     cmd: bash src/03_build_sqlite.sh
     deps:
       - downloads/mysql_toxrefdb.sql
+      - src/03_build_sqlite.sh
     outs:
       - brick/toxrefdb.sqlite

@@ -40,8 +40,12 @@ stages:
       hash: md5
       md5: ee7c873e7623247c11d86714469177f9
       size: 352425243
+    - path: src/03_build_sqlite.sh
+      hash: md5
+      md5: 16a69bb344f8c7f6845f7f85a04da2c3
+      size: 1370
     outs:
     - path: brick/toxrefdb.sqlite
       hash: md5
-      md5: d4ba1bc2d870b23e8be2398bd719f431
-      size: 405016576
+      md5: 8aba170eb7cd4df13d4b060f184157be
+      size: 425697280

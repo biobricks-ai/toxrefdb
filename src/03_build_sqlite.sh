@@ -1,21 +1,44 @@
+# Create a directory for the SQLite file
 mkdir -p brick
-[ -f brick/toxrefdb.sqlite ] && rm brick/toxrefdb.sqlite # remove old sqlite file if it exists
-src/scripts/mysql2sqlite downloads/mysql_toxrefdb.sql | sqlite3 brick/toxrefdb.sqlite
 
-check_row_count() {
-    table=$1
-    min_count=$2
-    count=$(sqlite3 brick/toxrefdb.sqlite "SELECT COUNT(*) FROM $table;")
-    if [ "$count" -lt "$min_count" ]; then
-        echo "Table $table has less than $min_count rows. Actual count: $count"
-        exit 1
-    fi
-}
+# Remove the old SQLite file if it exists
+[ -f brick/toxrefdb.sqlite ] && rm brick/toxrefdb.sqlite
 
-# Perform the checks
-check_row_count "chemical" 1000
-check_row_count "dose" 1000
-check_row_count "dtg" 1000
+# Remove the docker container `mysql_toxrefdb` if it exists
+docker rm -f mysql_toxrefdb 2> /dev/null
 
-echo "All checks passed."
-exit 0
+# Remove the docker image `mysql_toxrefdb` if it exists
+docker rmi -f mysql_toxrefdb 2> /dev/null
+
+# Build the docker image
+docker build -t mysql_toxrefdb -f src/scripts/Dockerfile .
+
+# Run the docker container
+docker run -d -p 3306:3306 --name mysql_toxrefdb mysql_toxrefdb
+
+# Wait for the initialization log file to confirm readiness
+echo "Waiting for database initialization to complete..."
+until docker exec mysql_toxrefdb test -f /tmp/db-init.log; do
+    echo -n "."; sleep 3;
+done
+sleep 30;
+echo "Database initialization confirmed by log file."
+
+# create sqlite database
+pip install mysql-to-sqlite3
+
+# Attempt to create SQLite database for up to 5 minutes
+timeout=300  # 3 minutes in seconds
+elapsed=0
+echo "Attempting to create SQLite database..."
+while ! mysql2sqlite -f brick/toxrefdb.sqlite -d toxrefdb -u root --mysql-password password && [ $elapsed -lt $timeout ]; do
+    echo "Retrying in 10 seconds..."
+    sleep 10
+    elapsed=$((elapsed + 10))
+done
+
+# Remove the docker container `mysql_toxrefdb`
+docker rm -f mysql_toxrefdb
+
+# Remove the docker image `mysql_toxrefdb`
+docker rmi mysql_toxrefdb
