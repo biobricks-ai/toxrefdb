@@ -1,35 +1,9 @@
-# How to build bricks
+# ToxRefDB
 
-1. Create a brick named `{newbrick}` from this template
-```
-gh repo create biobricks-ai/{newbrick} -p biobricks-ai/brick-template --public
-gh repo clone biobricks-ai/{newbrick}
-cd newbrick
-```
+ToxRefDB contains mammal toxicity information that when combined with other sources of information, such as exposure and metabolism, form the basis for chemical risk assessments.
 
-2. Edit stages according to your needs:
-    Recommended scripts:
-    - ``01_download.sh``
-    - ``02_unzip.sh``
-    - ``03_build.sh`` calling a function to process individual files like ``csv2parquet.R`` or ``csv2parquet.py``
+This brick takes mysql data from the ToxRefDB Clowder archive and creates a sqlite database.
 
-3. Replace stages in dvc.yaml with your new stages
-    
-4. Build your brick
-```
-dvc repro # runs new stages
-```
+Documentation for the schema is available on the archive.
 
-5. Push the data to biobricks.ai
-```
-dvc push -r s3.biobricks.ai 
-```
-
-6. Commit the brick
-```
-git add -A && git commit -m "some message"
-git push
-```
-
-7. Monitor the bricktools github action
-
+[ToxRefDB Clowder Archive](https://clowder.edap-cluster.com/datasets/61147fefe4b0856fdc65639b#folderId=62c5cfebe4b01d27e3b2d851&page=0)
