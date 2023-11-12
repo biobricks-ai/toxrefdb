@@ -9,27 +9,20 @@
 # dvc repro <stage>
 
 stages:
-  download:
-    cmd: stages/01_download.sh
-    deps:
-      - stages/01_download.sh
+  status:
+    cmd: bash src/01_status.sh
     outs:
-      - download
-      - list
-  unzip: 
-    cmd: stages/02_unzip.sh
+      - downloads/toxrefdb_status.html
+  download: 
+    cmd: python3 src/02_download.py
     deps:
-      - stages/02_unzip.sh
-      - download
-      - list
+      - downloads/toxrefdb_status.html
+      - src/02_download.py
     outs:
-      - raw
+      - downloads/mysql_toxrefdb.sql
   build: 
-    cmd: stages/03_build.sh
+    cmd: bash src/03_build_sqlite.sh
     deps:
-      - stages/03_build.sh
-      - stages/csv2parquet.sh
-      - raw
-      - list
+      - downloads/mysql_toxrefdb.sql
     outs:
-      - brick
+      - brick/toxrefdb.sqlite

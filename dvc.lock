@@ -10,3 +10,38 @@ stages:
     - path: data/mtcars.parquet
       md5: 77cf29accf9535522fad7db1486eff9a
       size: 6243
+  status:
+    cmd: bash src/01_status.sh
+    outs:
+    - path: downloads/toxrefdb_status.html
+      hash: md5
+      md5: 942395219072d296e445639844cdaaeb
+      size: 67917
+  download:
+    cmd: python3 src/02_download.py
+    deps:
+    - path: downloads/toxrefdb_status.html
+      hash: md5
+      md5: 942395219072d296e445639844cdaaeb
+      size: 67917
+    - path: src/02_download.py
+      hash: md5
+      md5: f03de80cb91888b86716207324a4ba5f
+      size: 1345
+    outs:
+    - path: downloads/mysql_toxrefdb.sql
+      hash: md5
+      md5: ee7c873e7623247c11d86714469177f9
+      size: 352425243
+  build:
+    cmd: bash src/03_build_sqlite.sh
+    deps:
+    - path: downloads/mysql_toxrefdb.sql
+      hash: md5
+      md5: ee7c873e7623247c11d86714469177f9
+      size: 352425243
+    outs:
+    - path: brick/toxrefdb.sqlite
+      hash: md5
+      md5: d4ba1bc2d870b23e8be2398bd719f431
+      size: 405016576
