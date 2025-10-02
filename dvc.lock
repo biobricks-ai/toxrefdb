@@ -4,41 +4,41 @@ stages:
   status:
     cmd: bash src/01_status.sh
     outs:
-    - path: downloads/toxrefdb_status.html
+    - path: download/toxrefdb_status.html
       hash: md5
-      md5: 942395219072d296e445639844cdaaeb
-      size: 67917
-
+      md5: 6b8946ed5b4ef6dcdcc9268afaf31fd6
+      size: 67933
   download:
     cmd: python3 src/02_download.py
     deps:
-    - path: downloads/toxrefdb_status.html
+    - path: download/toxrefdb_status.html
       hash: md5
-      md5: 942395219072d296e445639844cdaaeb
-      size: 67917
+      md5: 6b8946ed5b4ef6dcdcc9268afaf31fd6
+      size: 67933
     - path: src/02_download.py
       hash: md5
-      md5: f03de80cb91888b86716207324a4ba5f
-      size: 1345
+      md5: c934bda75ebac23cc23111fd520637c8
+      size: 1341
+      isexec: true
     outs:
-    - path: downloads/mysql_toxrefdb.sql
+    - path: download/toxrefdb.dump
       hash: md5
-      md5: ee7c873e7623247c11d86714469177f9
-      size: 352425243
-
+      md5: dd3291f322e6cfbf7371e34b7fc9fc6e
+      size: 62937530
   build:
     cmd: bash src/03_build_sqlite.sh
     deps:
-    - path: downloads/mysql_toxrefdb.sql
+    - path: download/toxrefdb.dump
       hash: md5
-      md5: ee7c873e7623247c11d86714469177f9
-      size: 352425243
+      md5: dd3291f322e6cfbf7371e34b7fc9fc6e
+      size: 62937530
     - path: src/03_build_sqlite.sh
       hash: md5
-      md5: 16a69bb344f8c7f6845f7f85a04da2c3
-      size: 1370
+      md5: 316be818359663f2307cf37d2a941532
+      size: 2649
+      isexec: true
     outs:
     - path: brick/toxrefdb.sqlite
       hash: md5
-      md5: 8aba170eb7cd4df13d4b060f184157be
-      size: 425697280
+      md5: 6506c343d58abfdcd99567ec7a52eba0
+      size: 318119936
