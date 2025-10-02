@@ -1,44 +1,85 @@
+#!/bin/bash
+
 # Create a directory for the SQLite file
 mkdir -p brick
 
 # Remove the old SQLite file if it exists
 [ -f brick/toxrefdb.sqlite ] && rm brick/toxrefdb.sqlite
 
-# Remove the docker container `mysql_toxrefdb` if it exists
-docker rm -f mysql_toxrefdb 2> /dev/null
+# Check if required tools are installed
+echo "Checking for required tools..."
 
-# Remove the docker image `mysql_toxrefdb` if it exists
-docker rmi -f mysql_toxrefdb 2> /dev/null
+# Install SQLite3 if not present
+if ! command -v sqlite3 &> /dev/null; then
+    echo "Installing sqlite3..."
+    sudo apt-get update && sudo apt-get install -y sqlite3
+fi
 
-# Build the docker image
-docker build -t mysql_toxrefdb -f src/scripts/Dockerfile .
+# Install PostgreSQL client tools if not present
+if ! command -v pg_restore &> /dev/null; then
+    echo "Installing postgresql-client..."
+    sudo apt-get update && sudo apt-get install -y postgresql-client
+fi
 
-# Run the docker container
-docker run -d -p 3306:3306 --name mysql_toxrefdb mysql_toxrefdb
+# Install Python packages for PostgreSQL to SQLite conversion
+echo "Installing Python packages for conversion..."
+pip install psycopg2-binary
 
-# Wait for the initialization log file to confirm readiness
-echo "Waiting for database initialization to complete..."
-until docker exec mysql_toxrefdb test -f /tmp/db-init.log; do
-    echo -n "."; sleep 3;
-done
-sleep 30;
-echo "Database initialization confirmed by log file."
+# Start a temporary PostgreSQL container
+echo "Starting temporary PostgreSQL container..."
+docker rm -f temp_postgres 2> /dev/null
+docker run -d --name temp_postgres \
+    -e POSTGRES_DB=toxrefdb \
+    -e POSTGRES_USER=postgres \
+    -e POSTGRES_PASSWORD=password \
+    -p 5432:5432 \
+    postgres:13
 
-# create sqlite database
-pip install mysql-to-sqlite3
-
-# Attempt to create SQLite database for up to 5 minutes
-timeout=300  # 3 minutes in seconds
+# Wait for PostgreSQL to be ready
+echo "Waiting for PostgreSQL to be ready..."
+timeout=60
 elapsed=0
-echo "Attempting to create SQLite database..."
-while ! mysql2sqlite -f brick/toxrefdb.sqlite -d toxrefdb -u root --mysql-password password && [ $elapsed -lt $timeout ]; do
-    echo "Retrying in 10 seconds..."
-    sleep 10
-    elapsed=$((elapsed + 10))
+while ! docker exec temp_postgres pg_isready -U postgres && [ $elapsed -lt $timeout ]; do
+    echo "Waiting for PostgreSQL... ($elapsed seconds)"
+    sleep 5
+    elapsed=$((elapsed + 5))
 done
 
-# Remove the docker container `mysql_toxrefdb`
-docker rm -f mysql_toxrefdb
+if [ $elapsed -ge $timeout ]; then
+    echo "PostgreSQL failed to start within timeout"
+    docker rm -f temp_postgres
+    exit 1
+fi
 
-# Remove the docker image `mysql_toxrefdb`
-docker rmi mysql_toxrefdb
+# Restore the dump file to PostgreSQL
+echo "Restoring PostgreSQL dump to temporary database..."
+docker exec -i temp_postgres pg_restore -U postgres -d toxrefdb -v --no-owner --no-privileges < download/toxrefdb.dump
+
+# Check if the restore was successful (ignore warnings about missing users)
+if docker exec temp_postgres psql -U postgres -d toxrefdb -c "\dt prod_toxrefdb_3_0.*" | grep -q "prod_toxrefdb_3_0"; then
+    echo "PostgreSQL dump restored successfully (ignoring ownership warnings)"
+else
+    echo "Failed to restore PostgreSQL dump - no tables found"
+    docker rm -f temp_postgres
+    exit 1
+fi
+
+# Convert PostgreSQL database to SQLite using Python
+echo "Converting PostgreSQL database to SQLite..."
+uv run python3 src/scripts/pg_to_sqlite.py
+
+if [ $? -eq 0 ]; then
+    echo "Successfully converted PostgreSQL database to SQLite!"
+    echo "SQLite database created at: brick/toxrefdb.sqlite"
+else
+    echo "Failed to convert database using Python script"
+    rm -f /tmp/pg_to_sqlite.py
+    docker rm -f temp_postgres
+    exit 1
+fi
+
+# Cleanup
+echo "Cleaning up..."
+docker rm -f temp_postgres
+
+echo "Conversion completed successfully!"
