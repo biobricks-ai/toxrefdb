@@ -10,7 +10,7 @@ ENV MYSQL_ROOT_PASSWORD=password
 # Add execution scripts (executed in alphabetical order)
 
 ## Add the SQL script
-ADD downloads/mysql_toxrefdb.sql /docker-entrypoint-initdb.d/01_mysql.sql
+ADD download/mysql_toxrefdb.sql /docker-entrypoint-initdb.d/01_mysql.sql
 
 ## Add database initialization indicator script
 ADD src/scripts/init-db.sh /docker-entrypoint-initdb.d/02_init-db.sh
