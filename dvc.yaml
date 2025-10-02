@@ -3,20 +3,20 @@ stages:
   status:
     cmd: bash src/01_status.sh
     outs:
-      - downloads/toxrefdb_status.html
+      - download/toxrefdb_status.html
 
   download: 
     cmd: python3 src/02_download.py
     deps:
-      - downloads/toxrefdb_status.html
+      - download/toxrefdb_status.html
       - src/02_download.py
     outs:
-      - downloads/mysql_toxrefdb.sql
+      - download/toxrefdb.dump
 
   build: 
     cmd: bash src/03_build_sqlite.sh
     deps:
-      - downloads/mysql_toxrefdb.sql
+      - download/toxrefdb.dump
       - src/03_build_sqlite.sh
     outs:
       - brick/toxrefdb.sqlite
